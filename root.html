@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>root</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <p>
+        root :)
+    </p>
+
+    <div class="terminal-minimized" id="terminal-minimized">
+        <input type="image" src="downloads/terminal_logo.png" alt="terminal logo png">
+    </div>
+
+    <div id="terminal">
+        <div id="terminalheader">
+            <p class="terminalheader-user">User@Desktop</p>
+            <button class="minimize" id="minimize">-</button>
+        </div>
+        <div class="terminalbody">
+            <p class="past-input" id="past-input"></p>
+            <p class="present-input" id="present-input">
+                <label id="command-label" for="command">User@Desktop:/$</label>
+                <input class="command" type="text" id="command" name="command" autocomplete="off">
+            </p>
+        </div>
+    </div>
+    <script type="module" src="script.js"></script>
+    
+</body>
+</html>
