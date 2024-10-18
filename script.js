@@ -3,6 +3,9 @@ import * as tree from './fileTree.js';
 util.func();
 //Make the DIV element draggagle:
 dragElement(document.getElementById("terminal"));
+dragElement(document.getElementById("terminal-minimized"));
+ 
+let isDrag = false;
 
 function dragElement(elmnt) {
   var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -13,13 +16,14 @@ function dragElement(elmnt) {
   }
 
   function dragMouseDown(e) {
-    e = e || window.event;  
+    e = e;
     e.preventDefault();
 
     pos3 = e.clientX;
     pos4 = e.clientY;
     document.onmouseup = closeDragElement;
 
+    isDrag = false;
     document.onmousemove = elementDrag;
   }
 
@@ -34,6 +38,9 @@ function dragElement(elmnt) {
 
     elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
     elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    if (Math.abs(pos1) > 5 || Math.abs(pos2) > 5) {
+        isDrag = true;
+    }
   }
 
   function closeDragElement() {
@@ -55,6 +62,10 @@ if (minimizeCookie == "true") { //first time or terminal is displayed
 } 
 
 minimized.addEventListener("click", function() {
+    if (isDrag) {
+        isDrag = false;
+        return;
+    }
     minimized.style.display = "none";
     terminal.style.display = "block";
     util.setCookie("minimize", "false", 1);
@@ -80,7 +91,7 @@ document.getElementById("command-label").textContent = user;
 var history = util.getCookie("history");
 if (!history) {history=[];}
 
-var help = "clear - clears terminal\n cd [location] - change directory\n ls [location] - list out current directory\n ./ [location] - displays webpage/content\n tree [location] - displays tree visualization of directory\n echo [msg] - prints message\n exit - closes webpage\n help - help manual\n";
+var help = "clear - clears terminal\n cd [location] - change directory\n ls [location] - list out current directory\n ./ [location] - displays webpage/content\n tree [location] - displays tree visualization of directory\n echo [msg] - prints message\n exit - closes webpage\n mkdir - makes directory\n touch [file] - drag and drop a file\n help - help manual\n";
 let pastCommands = util.getCookie("commands");
 if (!pastCommands) {
     pastCommands = [];
@@ -115,6 +126,7 @@ function handleCommand(command, file) {
         temp_curr.addChild(newPage);
         return "";
     }
+    ///make rmdir, rm, rm -r, 
 
 
 
@@ -178,11 +190,29 @@ function handleCommand(command, file) {
             case 0:
                 return util.commandError(commandArray[0], path)
             case 1: //for html files
-                const htmlOutput = document.getElementById('htmlOutput');
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const fileContent = event.target.result;
-                    htmlOutput.innerHTML = fileContent;
+
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(fileContent, 'text/html');
+
+                    const htmlContent = doc.body.innerHTML; // Extracts HTML
+                    htmlOutput.innerHTML = htmlContent;
+
+                    const styles = doc.querySelectorAll('style');
+                    styles.forEach(style => {
+                        const newStyle = document.createElement('style');
+                        newStyle.textContent = style.textContent;
+                        document.head.appendChild(newStyle);
+                    });
+
+                    const scripts = doc.querySelectorAll('script');
+                    scripts.forEach(script => {
+                        const newScript = document.createElement('script');
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    });
                 };
                 reader.readAsText(temp_curr.file);
                 break;
@@ -195,8 +225,6 @@ function handleCommand(command, file) {
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-                // link.href = temp_curr.file;
-                // link.download = temp_curr.name;
                 break;
             case 3: //for external links
                 window.open(temp_curr.link);
@@ -220,7 +248,6 @@ function handleCommand(command, file) {
 
 
 ////////////
-    const fileInfo = document.getElementById('fileInfo');
     let curr_file;
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -243,7 +270,6 @@ function handleCommand(command, file) {
             let fileName = file.name.replaceAll(' ', '_')
             let ccmd = document.getElementById("command").value;
             document.getElementById("command").value= ccmd + fileName;
-            fileInfo.textContent = fileName;
             curr_file = file;
         }
     }
