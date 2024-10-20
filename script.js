@@ -190,6 +190,7 @@ function handleCommand(command, file) {
             case 0:
                 return util.commandError(commandArray[0], path)
             case 1: //for html files
+                console.log("IM HERE")
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const fileContent = event.target.result;
@@ -211,7 +212,8 @@ function handleCommand(command, file) {
                     scripts.forEach(script => {
                         const newScript = document.createElement('script');
                         newScript.textContent = script.textContent;
-                        document.body.appendChild(newScript);
+                            console.log(newScript)
+                            document.body.appendChild(newScript);
                     });
                 };
                 reader.readAsText(temp_curr.file);
