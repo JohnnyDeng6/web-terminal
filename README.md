@@ -62,6 +62,7 @@ Made with pure JavaScript with some html/css
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/web-terminal.git
+git clone https://github.com/JohnnyDeng6/web-terminal.git
 cd web-terminal
+google-chrome root.html # or any other browser
 
