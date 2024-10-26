@@ -1,3 +1,7 @@
+const DIRECTORY = 0;
+const HTML_PAGE = 1;
+const DOWNLOADABLE = 2;
+
 export class TreeNode {
     constructor(name, type, file) {
         this.name = name; // file/directory name
@@ -13,10 +17,12 @@ export class TreeNode {
         console.log(childNode.name)
         console.log(childNode.parent.name)
     }
+
+
 }
 export class Tree {
     constructor(rootValue) {
-        this.root = new TreeNode(rootValue, 0);
+        this.root = new TreeNode(rootValue, DIRECTORY);
     }
     traverseToString(node, prefix = '', isLast = true) { //dfs in string
         let treeString = prefix + (isLast ? '└── ' : '├── ') + node.name + '\n';
@@ -31,6 +37,47 @@ export class Tree {
 
         return treeString;
     }
+}
+
+export function removeNodeRecursive(childNode) {
+    const parentNode = childNode.parent;
+    if (!parentNode) {
+        return "Cannot remove root directory";
+    }
+    const index = parentNode.children.indexOf(childNode);
+    if (index > -1) {
+        if (childNode.children.length > 0) {
+            childNode.children.forEach((child) => {
+                removeNodeRecursive(child);
+            })}
+        parentNode.children.splice(index, 1);
+    }
+    return "";
+}
+
+export function makeNewPath(path, curr , file, type) {
+    let error = ": " + path + ": No such file or directory"
+    let pathList = path.split('/').filter(Boolean);
+    for (let i = 0; i<pathList.length; i++) {
+        if (pathList[i] == "..") {
+            curr = curr.parent;
+            if (curr == null) {return error;}
+        } else {
+            const matchingChild = curr.children.find(child => child.name === pathList[i]);
+            if (matchingChild) {
+                curr = matchingChild
+            } else {
+                for (let j = 0; j<pathList.length-i;j++) {
+                    let curr_type = j+1==pathList.length-i ? type : DIRECTORY;
+                    const newNode = new TreeNode(pathList[i+j], curr_type, file);
+                    curr.addChild(newNode);
+                    curr = newNode;
+                }
+                return "";
+            }
+        }
+    }
+    return error;
 }
 
 export function handlePath(path, curr) {
@@ -70,95 +117,54 @@ export function findPath(curr) {
 
 }
 
-export function addChildByFile(file, currNode) {
-    //given file, add to child to currNode
-    
-
-}
-
-//CREATION OF FILE STRUCTURE
-export const root = new Tree("/"); // Home, Education, Project
+export const root = new Tree("/");
 
 
-//     const home = new TreeNode("Home", 0); // 
-//     root.root.addChild(home);
+const guideContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Terminal Commands</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .commands {
+            font-size: 1.5em;
+            white-space: pre-wrap;
+            text-align: left;
+            margin: auto;
+            max-width: 1000px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Custom Terminal Commands</h1>
+    <div class="commands">
+        clear - clears terminal<br>
+        cd [location] - change directory<br>
+        ls [location] - list out current directory<br>
+        ./[location] - displays/gets webpage/content<br>
+        tree [location] - displays tree visualization of directory<br>
+        echo [msg] - prints message<br>
+        exit - closes webpage<br>
+        mkdir [location+Name] - makes directory<br>
+        rmdir/rm [location] - removes file/directory<br>
+        touch [file] - drag and drop a file<br>
+        help - help manual<br>
+    </div>
+</body>
+</html>`;
 
-//         const homePage = new TreeNode("home.html", 1);
-//         home.addChild(homePage);
+const blob = new Blob([guideContent], { type: "text/html" });
+const file = new File([blob], "root.html", { type: "text/html" });
 
-//         const meJPG = new TreeNode("me.jpg", 2);
-//         home.addChild(meJPG);
-//         //what to add on home page?
-//         //stuff about me?
-//         //linkden?
-//         //email?
-//         //idk man
-
-//     const education = new TreeNode("Education", 0); // education.html, resume, transcript, sfu logo
-//     root.root.addChild(education);
-
-//         //////////////////////////
-//         const educationPage = new TreeNode("education.html", 1);
-//         education.addChild(educationPage);
-
-//         const resumePDF = new TreeNode("resume.pdf", 2);
-//         education.addChild(resumePDF);
-
-//         const transcriptPDF = new TreeNode("transcript.pdf", 2);
-//         education.addChild(transcriptPDF);
-
-//         const sfu_logoJPG = new TreeNode("sfu_logo.jpg", 2);
-//         education.addChild(sfu_logoJPG);
-//         //////////////////////////////
-
-//     const projects = new TreeNode("Projects", 0); // projects.html, goober, examharmony, personal site, droppr., github.com
-//     root.root.addChild(projects);
-
-//         const projectsPage = new TreeNode("projects.html", 1);
-//         projects.addChild(projectsPage);
-
-//         const examharmony = new TreeNode("examharmony", 0);
-//         projects.addChild(examharmony);
-
-//             const examharmonyGIT = new TreeNode("github.com-examharmony.html", 3, "https://github.com/JohnnyDeng6/ExamHarmony2");
-//             examharmony.addChild(examharmonyGIT);
-//             const examharmonyWEB = new TreeNode("examharmony.html", 3, "https://examharmony.jzydeng.com");
-//             examharmony.addChild(examharmonyWEB);
-//             const examharmonyLOGO = new TreeNode("examharmony_logo.png", 2);
-//             examharmony.addChild(examharmonyLOGO);
-
-//         const goober = new TreeNode("goober", 0);
-//         projects.addChild(goober);
-//             const gooberGIT = new TreeNode("github.com-goober.html", 3,"https://github.com/JohnnyDeng6/goober");
-//             goober.addChild(gooberGIT);
-//             const gooberWEB = new TreeNode("goober.html", 3, "https://goober.jzydeng.com");
-//             goober.addChild(gooberWEB);
-//             const gooberLOGO = new TreeNode("goober_logo.png", 2);
-//             goober.addChild(gooberLOGO);
-
-//         const jzydeng = new TreeNode("jzydeng", 0);
-//         projects.addChild(jzydeng);
-//             const jzydengGIT = new TreeNode("github.com-jzydeng.html", 3, "https://github.com/JohnnyDeng6/jzydeng");
-//             jzydeng.addChild(jzydengGIT);
-//             const jzydengWEB = new TreeNode("jzydeng.html", 3, "https://jzydeng.com");
-//             jzydeng.addChild(jzydengWEB);
-//             const jzydengLOGO = new TreeNode("jzydeng_logo.png", 2);
-//             jzydeng.addChild(jzydengLOGO);
-
-//         const droppr = new TreeNode("droppr", 0);
-//         projects.addChild(droppr);
-//             const dropprGIT = new TreeNode("github.com/droppr.html", 3, "https://github.com/micahdbak/droppr");
-//             droppr.addChild(dropprGIT);
-//             const dropprWEB = new TreeNode("droppr.html", 3, "https://droppr.ca");
-//             droppr.addChild(dropprWEB);
-//             const dropprLOGO = new TreeNode("droppr_logo.png", 2);
-//             droppr.addChild(dropprLOGO);
-
-
-//         const github = new TreeNode("github.com.html", 3, "https://github.com/JohnnyDeng6");
-//         projects.addChild(github);
-// console.log("Tree traversal:");
-// // root.traverse(root.root); //
-// console.log(root.traverseToString(root.root));
-// ///////////////////////////////////////////////////////////////
-
+const rootPage = new TreeNode("root.html", 1, file);
+root.root.addChild(rootPage);

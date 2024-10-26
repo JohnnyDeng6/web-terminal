@@ -1,6 +1,11 @@
 import * as util from './util.js';
 import * as tree from './fileTree.js';
 util.func();
+
+const DIRECTORY = 0;
+const HTML_PAGE = 1;
+const DOWNLOADABLE = 2;
+
 //Make the DIV element draggagle:
 dragElement(document.getElementById("terminal"));
 dragElement(document.getElementById("terminal-minimized"));
@@ -91,7 +96,7 @@ document.getElementById("command-label").textContent = user;
 var history = util.getCookie("history");
 if (!history) {history=[];}
 
-var help = "clear - clears terminal\n cd [location] - change directory\n ls [location] - list out current directory\n ./ [location] - displays webpage/content\n tree [location] - displays tree visualization of directory\n echo [msg] - prints message\n exit - closes webpage\n mkdir - makes directory\n touch [file] - drag and drop a file\n help - help manual\n";
+var help = "clear - clears terminal\n cd [location] - change directory\n ls [location] - list out current directory\n ./[location] - displays/gets webpage/content\n tree [location] - displays tree visualization of directory\n echo [msg] - prints message\n exit - closes webpage\n mkdir [location+Name] - makes directory\n rmdir/rm [location] - removes file/directory\n touch [file] - drag and drop a file\n help - help manual\n";
 let pastCommands = util.getCookie("commands");
 if (!pastCommands) {
     pastCommands = [];
@@ -103,44 +108,40 @@ if (!pastCommands) {
     terminalBody.scrollTop = terminalBody.scrollHeight;
 }
 
-
 //given array of command, it returns a msg
 function handleCommand(command, file) {
 
     let commandArray = command.split(" ");
     let msg = "";
     let path = commandArray[1];
+    let cmd = commandArray[0];
     let temp_curr = curr;
     const terminal = document.getElementById('terminal');
     terminal.addEventListener('drop', handleDrop, false);
 
-    if (commandArray[0] == "mkdir") {
-        const newDirectory = new tree.TreeNode(commandArray[1], 0);
-        temp_curr.addChild(newDirectory);
-        return "";
+    let type = DIRECTORY;
+    if (cmd == "mkdir" || cmd == "touch") {
+        if (cmd == "touch") {
+            if (!file) {return util.commandError(cmd, path); }
+            type = file.type == "text/html" ? HTML_PAGE : DOWNLOADABLE;
+        }
+        if (path != undefined) {
+            return tree.makeNewPath(path, temp_curr, file, type);
+        } 
+        return util.commandError(cmd, path);
     }
-    else if (commandArray[0] == "touch") {
-        if (!file) {return util.commandError(commandArray[0], path); }
-        let type = file.type == "text/html" ? 1 : 2;
-        const newPage = new tree.TreeNode(commandArray[1], type, file);
-        temp_curr.addChild(newPage);
-        return "";
-    }
-    ///make rmdir, rm, rm -r, 
 
-
-
-    if (commandArray[0] == "echo") {
-        commandArray[0] = "";
+    if (cmd == "echo") {
+        cmd = "";
         let temp = commandArray.toString();
         return temp.replace(/,/g, ' ') + '\n';
     }
 
-    else if (commandArray[0] == "help") {
+    else if (cmd == "help") {
         return help;
     }
 
-    else if (commandArray[0] == "exit") {
+    else if (cmd == "exit") {
         if(confirm("are you sure you want to exit") == true) {
             window.close();
             var myWindow = window.open("", "_self");
@@ -148,7 +149,7 @@ function handleCommand(command, file) {
         } else {return "";}
     }
 
-    else if (commandArray[0] == "clear") {
+    else if (cmd == "clear") {
         pastCommands = [];
         return "CLEAR_COMMAND_CALLED";
     } 
@@ -157,40 +158,49 @@ function handleCommand(command, file) {
     if (path != undefined) {
         temp_curr = tree.handlePath(path, temp_curr);
         if (typeof temp_curr === 'string' || temp_curr instanceof String)  {
-            return util.commandError(commandArray[0], path); 
+            return util.commandError(cmd, path); 
         } 
     } 
 
-    if (command[0] + command[1] == "./") {
+    if (cmd[0] + cmd[1] == "./") { //first 2 characters of cmd
         path = command.substr(2);
-        commandArray[0] = "./";
+        cmd = "./";
         temp_curr = tree.handlePath(path, temp_curr);
         if (typeof temp_curr === 'string' || temp_curr instanceof String)  {
-            return util.commandError(commandArray[0], path); 
+            return util.commandError(cmd, path); 
         } 
     }
 
-    if (commandArray[0] == "cd") {
-        if (temp_curr.type == 0) {
+    if (cmd == "cd") {
+        if (temp_curr.type == DIRECTORY) {
             curr = temp_curr;
-        } else { return util.commandError(commandArray[0], path)}
+        } else { return util.commandError(cmd, path)}
+    }
+
+    else if (cmd == "rmdir" || cmd == "rm") {
+        if (temp_curr.type == DIRECTORY) {
+            return tree.removeNodeRecursive(temp_curr);
+        } else { return util.commandError(cmd, path)}
     }
 
 
-
-    else if (commandArray[0] == "ls") {
+    else if (cmd == "ls") {
         if (commandArray.length == 1){
             temp_curr = curr;
         }
         return temp_curr.children.map(child => child.name).toString().replace(/,/g, ' ') + '\n';
     }
 
-    else if (commandArray[0] == "./") {
+    else if (cmd == "./") {
         switch (temp_curr.type) {
-            case 0:
-                return util.commandError(commandArray[0], path)
-            case 1: //for html files
-                console.log("IM HERE")
+
+            case DIRECTORY:
+                return util.commandError(cmd, path)
+
+            case HTML_PAGE: //for html files
+                const dynamicStyles = document.querySelectorAll('style[data-dynamic-style="true"]');
+                dynamicStyles.forEach(style => style.remove());
+
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     const fileContent = event.target.result;
@@ -205,6 +215,7 @@ function handleCommand(command, file) {
                     styles.forEach(style => {
                         const newStyle = document.createElement('style');
                         newStyle.textContent = style.textContent;
+                        newStyle.setAttribute('data-dynamic-style', 'true');
                         document.head.appendChild(newStyle);
                     });
 
@@ -218,7 +229,8 @@ function handleCommand(command, file) {
                 };
                 reader.readAsText(temp_curr.file);
                 break;
-            case 2: //for content
+
+            case DOWNLOADABLE: //for content
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(temp_curr.file);
                 link.href = url;
@@ -228,16 +240,16 @@ function handleCommand(command, file) {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
                 break;
-            case 3: //for external links
-                window.open(temp_curr.link);
-                return "";
+            // case 3: //for external links
+            //     window.open(temp_curr.link);
+            //     return "";
             default:
                 console.log("how did we get here");
         }
         return "";
     }
 
-    else if (commandArray[0] == "tree") {
+    else if (cmd == "tree") {
         return tree.root.traverseToString(temp_curr);
     }
 
